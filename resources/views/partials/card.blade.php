@@ -1,0 +1,1 @@
+<div class="card-art"><div class="card-top"><span>RikoWallet</span><small>PREPAID / DESIGN PREVIEW</small></div><div class="chip"></div><div class="card-number">•••• &nbsp; •••• &nbsp; •••• &nbsp; 4821</div><div class="card-bottom"><span>{{ strtoupper($data['user']['name']??'YOUR NAME') }}</span><b>R.</b></div></div>

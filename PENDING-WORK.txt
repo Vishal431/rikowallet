@@ -1,0 +1,82 @@
+RIKOWALLET — REMAINING WORK / CURRENT LAUNCH SCOPE
+Updated: 5 October 2026 (Asia/Kolkata)
+
+CURRENT SCOPE
+- Start with earned RikoCoin only. Fiat/crypto deposits, wallet swaps, business
+  payments and monetary transfers are deferred. Historic balances remain in
+  the database; they are not deleted or converted.
+- Cards: Coming soon. A withdrawal method categorized Cards is an external
+  manual payout destination, not issuance of a RikoWallet card.
+- Cashfree and other live financial provider integrations remain deferred.
+
+IMPLEMENTED FOR MANUAL WITHDRAWALS
+- Admin > Manual withdrawals: currency rates and method creation/editing.
+- Categories: Cards, Crypto, Wallet. Country eligibility and enabled switch.
+- Minimum/maximum entered in RC; one payout currency per method.
+- Currency rate means payout units per 1 RC (e.g. 1 RC = 0.50 INR).
+- Flat fee: fixed amount in payout currency.
+- Percentage: percentage of the converted gross payout.
+- Capped percentage: min(gross * percentage / 100, maximum fee).
+- Optional tax percentage is on the fee, not the RC principal.
+- Five-minute server-signed quote; rate/fee changes require another review.
+- RC held on request. Pending -> Processing -> Paid.
+- Reject pending requests to return RC. Assigned admin can mark Processing
+  as confirmed Failed to return RC only when external payment did not happen.
+- External payment is done outside the app by the administrator. Marking Paid
+  records the outcome; it does not send bank funds or crypto automatically.
+- Encrypted recipient details, password confirmation, replay protection,
+  insufficient-balance checks, admin assignment, transaction locks and audit.
+- User sees approximate payout, rate, fees, tax and request status.
+
+METHOD IMAGE SPECIFICATION / CACHE
+- Recommended 512 x 512 px, square logo with padding.
+- PNG, JPG or WebP; maximum 1 MB and 1024 x 1024 px. No SVG.
+- Display at 48 x 48 px in website lists and 72 x 72 px in app details.
+- Unique URL per uploaded version; HTTP public cache up to one year.
+- Flutter uses disk/memory image caching. Caches may be evicted by the OS;
+  a first load or cache miss still needs the network.
+- Never cache private balances, recipient details or fee quotes publicly.
+
+BEFORE REAL REWARD PAYOUTS
+1. Configure and fund real task/reward budgets. Connect trusted task partners
+   and test signed completion callbacks. Demo tasks are not live earning offers.
+2. Configure currency rates, payout methods, country eligibility, KYC rules,
+   caps, instructions and genuine payment destinations. None is auto-enabled.
+3. Verify payout budget/funding outside the app; RC ledger does not represent
+   money already transferred to a provider. Validate external reference before
+   marking Paid. Do not refund an ambiguous in-flight external payment.
+4. Obtain the required provider/business permissions for each selected payout
+   method and target country. Manual processing does not replace eligibility.
+5. Complete email verification, password recovery, MFA/recovery, admin step-up
+   authentication and abuse/risk review workflows.
+6. Complete production task-device integrity (app earning is disabled outside
+   sandbox until configured). Review bot/fake-referral protections.
+7. Deploy HTTPS, least-privilege database credentials, queues/cron monitoring,
+   backups and restore tests, secret management, document scanning/retention.
+8. Perform independent security review, concurrency/load tests, real-device
+   testing, accessibility review and store compliance review. No claim of
+   zero bugs or guaranteed security is made.
+9. Rebuild and sign Android release, test API access on devices; test iOS.
+   Updated debug APK built on 5 October with the manual-withdrawal screens.
+   It is a local review build, not a signed production release artifact.
+
+FEATURE WORK STILL OUTSTANDING
+- Reusable country-tier task-rate editor and richer task partner adapters.
+- Inactive-referral push delivery, opt-out controls and delivery monitoring.
+- Custom contest prizes per rank and individual user earnings graphs.
+- Advanced dispute/reversal approval and financial export/reconciliation.
+- Production email/support notifications and robust English-language policy.
+- Operational monitoring for aged manual requests and reconciliation of
+  external receipts against manually recorded payment references.
+- Editing and removing old uploaded image files through a retention workflow.
+
+DEFERRED UNTIL PROVIDER APPROVAL
+- Cashfree/other fiat deposits and automated withdrawals, provider webhook
+  verification, refunds, chargebacks and settlement reconciliation.
+- USD/EUR custodial balances and approved currency conversion/payout rails.
+- Crypto deposit addresses, custody, swaps, withdrawals, KYT/Travel Rule.
+- Card issuing/loading/controls/delivery, subscription billing and consent.
+- Provider fallback, treasury allocation/rebalancing and live market pricing.
+
+This file records outstanding work. The local development build is not a
+completed or independently certified production financial service.
