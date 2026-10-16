@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/earn/verify', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
+Route::post('/earn/verify.php', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
 Route::post('/earn/verify-code', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
+Route::post('/earn/verify-code.php', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
 
 Route::get('/', fn () => view('landing'));
 Route::get('/method-image/{file}', function (string $file) {

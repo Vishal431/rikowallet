@@ -28,6 +28,6 @@ class CallbackController extends Controller
             ]);
         }
 
-        return $rewards->complete($d['user_code'], $d['package_name'], $event, str_ends_with($r->path(), 'verify-code'));
+        return $rewards->complete($d['user_code'], $d['package_name'], $event, str_contains($r->path(), 'verify-code'));
     }
 }

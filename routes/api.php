@@ -14,6 +14,8 @@ Route::middleware(['api.session', 'throttle:60,1'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 Route::post('/earn/verify', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
+Route::post('/earn/verify.php', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
 Route::post('/earn/verify-code', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
+Route::post('/earn/verify-code.php', [CallbackController::class, 'handle'])->middleware('throttle:120,1');
 
 Route::get('/ads/config', [\App\Http\Controllers\Api\AdNetworkApiController::class, 'index']);
