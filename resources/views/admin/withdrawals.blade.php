@@ -1,7 +1,7 @@
 @extends('layout')
 @section('title','Manual withdrawals · RikoWallet')
 @section('content')
-<div class="admin-menu"><a href="/admin">Overview</a><a href="/admin/withdrawals">Manual withdrawals</a><a href="/admin/kyc">KYC rules</a><a href="/admin/earning">Earning</a><a href="/admin/audit">Audit</a></div>
+<div class="admin-menu"><a href="/admin/site-guide">Site guide</a><a href="/admin">Overview</a><a href="/admin/withdrawals">Manual withdrawals</a><a href="/admin/kyc">KYC rules</a><a href="/admin/earning">Earning</a><a href="/admin/audit">Audit</a></div>
 <div class="page-head"><div><div class="eyebrow">RIKOCOIN / PAYOUT WORKSPACE</div><h1>Rewards, ready to go.</h1><p>Manage conversion rates, payout methods and manual requests.</p></div></div>
 <div class="grid cols-2">
 <div class="panel"><h2>Payout currency rates</h2><p class="helper">Rate means payout units for 1 RC. Example: 0.50 INR per RC. Rates are administrator estimates, not live market prices.</p>

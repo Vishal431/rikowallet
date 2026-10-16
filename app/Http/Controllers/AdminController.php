@@ -24,6 +24,9 @@ class AdminController extends Controller
     public function index(Request $r, string $page = 'overview')
     {
         $this->guard($r);
+        if ($page === 'site-guide') {
+            return view('admin.site-guide', ['page' => $page, 'health' => app(\App\Services\SiteHealth::class)->report()]);
+        }
         if ($page === 'withdrawals') {
             return view('admin.withdrawals', ['page' => $page, 'currencies' => DB::table('payout_currencies')->get(), 'methods' => DB::table('payment_methods')->where('manual', true)->get(), 'requests' => DB::table('records')->where('kind', 'manual_withdrawal')->latest()->paginate(25)]);
         }

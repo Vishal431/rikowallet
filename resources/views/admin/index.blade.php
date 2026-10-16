@@ -1,7 +1,7 @@
 @extends('layout')
 @section('title','Admin · '.ucfirst($page).' · RikoWallet')
 @section('content')
-<div class="admin-menu">@foreach(['overview','users','kyc','operations','withdrawals','methods','earning','referrals','contest','liquidity','support','cron','audit','providers'] as $p)<a href="/admin/{{ $p }}">{{ ucwords($p) }}</a>@endforeach</div>
+<div class="admin-menu">@foreach(['overview','users','kyc','operations','withdrawals','methods','earning','referrals','contest','liquidity','support','cron','audit','providers','site-guide'] as $p)<a href="/admin/{{ $p }}">{{ ucwords($p) }}</a>@endforeach</div>
 <div class="page-head"><div><div class="eyebrow">RIKOWALLET / ADMIN WORKSPACE</div><h1>{{ ['overview'=>'The bigger picture.','users'=>'Your community.','kyc'=>'Trust, at every step.','earning'=>'Little rewards. Full control.','referrals'=>'Grow on your terms.','contest'=>'A season worth sharing.','liquidity'=>'Your allocated inventory.','methods'=>'The right way to move money.','support'=>'Conversations that matter.','operations'=>'Every movement, accounted for.','cron'=>'Right on schedule.','audit'=>'A clear trail.','providers'=>'Your connected world.'][$page] }}</h1><p>Manage {{ str_replace('-',' ',$page) }} with a clear, auditable view.</p></div><span class="date-pill">{{ now()->format('d M Y') }}</span></div>
 
 @if($page==='overview')

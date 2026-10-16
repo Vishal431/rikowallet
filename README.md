@@ -65,6 +65,14 @@ No test bypass or client reward amount is accepted. Pairing starts only for enab
 
 ## Scheduler
 
+Admin **Site guide** (`/admin/site-guide`) checks web PHP/extensions, database
+migrations, cache, writable directories, production settings and background-job
+evidence. After pulling, run migrations and restart workers. The scheduler runs
+`riko:health-heartbeat` every minute and queues a harmless worker probe every
+five minutes. The page marks missing/stale evidence explicitly; it does not
+execute shell commands, send email, change balances or certify launch readiness.
+First verification requires cron and the default queue worker to actually run.
+
 Run `php artisan schedule:run` each minute. Daily statistics: 00:15 Asia/Kolkata; eligible pending rewards: every five minutes; monthly contest: first day at 00:30. Manual commands: `riko:stats`, `riko:rewards`, `riko:contest`.
 
 Admin /admin/cron documents installation. Optional POST `/api/cron/run` requires RIKO_CRON_SECRET and signed timestamp/nonce headers; no secret-bearing query-string URL is provided.

@@ -83,5 +83,6 @@ Artisan::command('riko:contest', function (Ledger $ledger) {
     $this->info('Contest entitlements settled safely.');
 });
 Schedule::command('riko:stats')->dailyAt('00:15')->timezone('Asia/Kolkata')->withoutOverlapping();
+Schedule::command('riko:health-heartbeat')->everyMinute()->withoutOverlapping();
 Schedule::command('riko:rewards')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('riko:contest')->monthlyOn(1, '00:30')->timezone('Asia/Kolkata')->withoutOverlapping();
