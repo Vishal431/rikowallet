@@ -8,7 +8,7 @@
 <div class="side-caption">{{ $isAdmin?'WORKSPACE / ADMIN':'YOUR EVERYDAY WALLET' }}</div>
 <nav>
 @if($isAdmin)
-@foreach(['overview'=>['chart','Overview'],'users'=>['user','All users'],'kyc'=>['shield','KYC & access'],'operations'=>['swap','Transactions'],'withdrawals'=>['up','Manual withdrawals'],'methods'=>['wallet','Payment methods'],'earning'=>['earn','Earning & tasks'],'referrals'=>['pay','Referral rules'],'contest'=>['trophy','Referral contest'],'liquidity'=>['chart','Swap & liquidity'],'support'=>['chat','Support inbox'],'cron'=>['globe','Cron & jobs'],'audit'=>['file','Audit history'],'providers'=>['settings','Providers'],'site-guide'=>['shield','Site guide']] as $key=>$item)
+@foreach(['overview'=>['chart','Overview'],'users'=>['user','All users'],'kyc'=>['shield','KYC & access'],'operations'=>['swap','Transactions'],'withdrawals'=>['up','Manual withdrawals'],'methods'=>['wallet','Payment methods'],'earning'=>['earn','Earning & tasks'],'ads'=>['settings','Ad Networks'],'referrals'=>['pay','Referral rules'],'contest'=>['trophy','Referral contest'],'liquidity'=>['chart','Swap & liquidity'],'support'=>['chat','Support inbox'],'cron'=>['globe','Cron & jobs'],'audit'=>['file','Audit history'],'providers'=>['settings','Providers'],'site-guide'=>['shield','Site guide']] as $key=>$item)
 <a class="{{ ($page??'')===$key?'active':'' }}" href="/admin/{{ $key }}"><x-icon :name="$item[0]"/>{{ $item[1] }}</a>
 @endforeach
 @else

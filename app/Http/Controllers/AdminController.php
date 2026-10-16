@@ -44,7 +44,7 @@ class AdminController extends Controller
             'accounts' => DB::table('accounts')->whereNotNull('user_id')->select('asset', DB::raw('SUM(balance) as balance'))->groupBy('asset')->get(),
             'company' => DB::table('accounts')->whereNull('user_id')->where('owner', '!=', 'sandbox:source')->get(),
             'operations' => DB::table('operations')->latest()->limit(30)->get(),
-            'tasks' => DB::table('tasks')->get(), 'methods' => DB::table('payment_methods')->get(),
+            'tasks' => DB::table('tasks')->get(), 'ad_networks' => \App\Models\AdNetwork::orderBy('sort_order')->get(), 'ad_strategy' => \App\Services\AdConfig::strategy(), 'ad_preview' => \App\Services\AdConfig::payload(), 'methods' => DB::table('payment_methods')->get(),
             'records' => DB::table('records')->latest()->limit(50)->get(),
             'messages' => DB::table('support_messages')->latest()->limit(50)->get(),
             'logs' => DB::table('audit_logs')->latest('created_at')->limit(40)->get(),
@@ -103,6 +103,26 @@ class AdminController extends Controller
                     $target = $d['method_id'];
                     unset($d['method_id']);
                     DB::table('payment_methods')->where('id', $target)->update($d + ['updated_at' => now()]);
+                    break;
+                                case 'ads':
+                    $strategy = $r->input('strategy', 'waterfall');
+                    DB::table('settings')->updateOrInsert(['key' => 'ad_strategy'], ['value' => json_encode($strategy), 'updated_at' => now(), 'created_at' => now()]);
+                    $fields = ['app_id_android', 'app_id_ios', 'banner_android', 'banner_ios', 'banner_2_android', 'banner_2_ios', 'native_android', 'native_ios', 'native_2_android', 'native_2_ios', 'interstitial_android', 'interstitial_ios', 'rewarded_android', 'rewarded_ios', 'app_open_android', 'app_open_ios'];
+                    foreach ($r->input('networks', []) as $code => $values) {
+                        $net = \App\Models\AdNetwork::where('code', $code)->first();
+                        if (!$net) continue;
+                        $attrs = [
+                            'is_enabled' => !empty($values['is_enabled']),
+                            'weight' => (int) ($values['weight'] ?? 0),
+                            'sort_order' => (int) ($values['sort_order'] ?? $net->sort_order),
+                        ];
+                        foreach ($fields as $field) {
+                            $v = trim((string) ($values[$field] ?? ''));
+                            $attrs[$field] = $v === '' ? null : $v;
+                        }
+                        $net->forceFill($attrs)->save();
+                    }
+                    $target = 'ads';
                     break;
                 case 'policy':
                     $d = $r->validate(['kyc_scope' => 'sometimes|in:all,new', 'referral_mode' => 'required|in:OFF,A,B,C', 'referral_percent' => 'required|numeric|min:0|max:100', 'newcomer_bonus' => 'required|numeric|min:0|max:1000000', 'referrer_bonus' => 'required|numeric|min:0|max:1000000', 'rc_usd_rate' => 'required|numeric|min:0.000001|max:100', 'swap_fee_percent' => 'required|numeric|min:0|max:10', 'swap_max_usd' => 'required|numeric|min:1|max:1000000', 'kyc_actions' => 'array', 'kyc_actions.*' => 'in:'.implode(',', config('riko.actions'))]);

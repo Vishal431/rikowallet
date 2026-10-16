@@ -25,6 +25,108 @@
 <div class="panel gap-top"><h2>Add a method</h2><form action="/admin/actions/method" method="post" class="gap-top">@csrf<div class="field-grid"><div class="field"><label>Display name</label><input name="name" required></div><div class="field"><label>Direction</label><select name="direction"><option>deposit</option><option>withdraw</option></select></div></div><div class="field"><label>Allowed countries</label><div class="check-grid">@foreach(config('riko.countries') as $v=>$label)<label><input name="countries[]" value="{{ $v }}" type="checkbox">{{ $label }}</label>@endforeach</div></div><div class="field"><label>Supported currencies</label><div class="check-grid">@foreach(config('riko.payment_assets') as $v)<label><input name="assets[]" value="{{ $v }}" type="checkbox">{{ $v }}</label>@endforeach</div></div><div class="field-grid"><div class="field"><label>Minimum</label><input name="minimum" value="1" required></div><div class="field"><label>Maximum</label><input name="maximum" value="10000" required></div></div><div class="field"><label>Fixed fee</label><input name="fee" value="0" required></div><div class="field"><label>Instructions</label><textarea name="instructions"></textarea></div><label class="toggle-row"><span>Display when country is eligible</span><input type="checkbox" name="enabled" value="1"></label><button class="button gap-top">Create method</button></form></div>
 
 <div class="panel gap-top"><h2>Deposit & withdrawal fees</h2><p class="helper">Set each method independently. Processing % is charged on the entered amount. Fixed fee + platform % form the platform fee. Tax % applies to the combined processing and platform fees. These are estimates until provider pricing is approved.</p><form action="/admin/actions/method-fees" method="post" class="gap-top">@csrf<div class="field"><label>Method</label><select name="method_id">@foreach($methods as $m)<option value="{{ $m->id }}">{{ $m->name }} · {{ $m->direction }} · {{ $m->processing_percent===null?'Fees not set':$m->processing_percent.'% processing' }}</option>@endforeach</select></div><div class="field-grid"><div class="field"><label>Processing fee %</label><input name="processing_percent" placeholder="e.g. 2.99" required inputmode="decimal"></div><div class="field"><label>Tax on fees %</label><input name="fee_tax_percent" placeholder="e.g. 18 if applicable" required inputmode="decimal"></div><div class="field"><label>Platform fee %</label><input name="platform_percent" value="0" required inputmode="decimal"></div><div class="field"><label>Fixed platform fee · method currency</label><input name="fee" value="0" required inputmode="decimal"></div></div><p class="helper">For fixed fees use a separate method per currency. Saving replaces this method's entire fee schedule.</p><button class="button gap-top">Save fee schedule</button></form></div>
+@elseif($page==='ads')
+<div class="panel">
+    <div class="panel-head">
+        <h2>Multi-Ad Network Orchestrator</h2>
+        <span class="status">Live Ad Serving</span>
+    </div>
+    <p class="helper">Configure up to 6 major ad networks with Cascading Waterfall Priority or Weighted Probability Rotation.</p>
+
+    <form action="/admin/actions/ads" method="post" class="gap-top">
+        @csrf
+        <div class="field">
+            <label>Serving Strategy</label>
+            <div style="display:flex; gap:20px; margin-top:8px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="radio" name="strategy" value="waterfall" @checked(($ad_strategy ?? 'waterfall') === 'waterfall')>
+                    <strong>Waterfall Fallback</strong> (Priority 1 -> 2 -> 3 cascading on unfilled)
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="radio" name="strategy" value="weighted" @checked(($ad_strategy ?? '') === 'weighted')>
+                    <strong>Weighted Rotation</strong> (Traffic distributed by assigned % chances)
+                </label>
+            </div>
+        </div>
+
+        <div class="stack gap-top">
+            @foreach($ad_networks as $net)
+            <div class="panel" style="background:var(--bg-card, #1e222d); border:1px solid var(--border-color, #2d3343); border-radius:10px; padding:18px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #2d3343; padding-bottom:10px; margin-bottom:14px;">
+                    <div>
+                        <strong style="font-size:16px; color:#fff;">{{ $net->name }}</strong>
+                        <span class="status" style="margin-left:8px; font-size:11px;">Code: {{ $net->code }}</span>
+                    </div>
+                    <div style="display:flex; gap:16px; align-items:center;">
+                        <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600;">
+                            <input type="checkbox" name="networks[{{ $net->code }}][is_enabled]" value="1" @checked($net->is_enabled)>
+                            Network Enabled
+                        </label>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <label style="font-size:12px; color:#9aa0ac;">Priority (1=Top):</label>
+                            <input type="number" name="networks[{{ $net->code }}][sort_order]" value="{{ $net->sort_order }}" style="width:65px; padding:4px 8px; font-size:13px; text-align:center;" min="1" max="20">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <label style="font-size:12px; color:#9aa0ac;">Weight %:</label>
+                            <input type="number" name="networks[{{ $net->code }}][weight]" value="{{ $net->weight }}" style="width:65px; padding:4px 8px; font-size:13px; text-align:center;" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
+                    <div class="field">
+                        <label>App ID (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][app_id_android]" value="{{ $net->app_id_android }}" placeholder="App ID / SDK Key">
+                    </div>
+                    <div class="field">
+                        <label>Banner Ad 1 (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][banner_android]" value="{{ $net->banner_android }}" placeholder="Banner Slot 1">
+                    </div>
+                    <div class="field">
+                        <label>Banner Ad 2 (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][banner_2_android]" value="{{ $net->banner_2_android }}" placeholder="Banner Slot 2">
+                    </div>
+
+                    @if($net->code !== 'unity')
+                    <div class="field">
+                        <label>Native Ad 1 (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][native_android]" value="{{ $net->native_android }}" placeholder="Native Slot 1">
+                    </div>
+                    <div class="field">
+                        <label>Native Ad 2 (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][native_2_android]" value="{{ $net->native_2_android }}" placeholder="Native Slot 2">
+                    </div>
+                    @endif
+
+                    <div class="field">
+                        <label>Interstitial Ad (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][interstitial_android]" value="{{ $net->interstitial_android }}" placeholder="Interstitial Slot">
+                    </div>
+                    <div class="field">
+                        <label>Rewarded Ad (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][rewarded_android]" value="{{ $net->rewarded_android }}" placeholder="Rewarded Slot">
+                    </div>
+
+                    @if(!in_array($net->code, ['unity', 'mintegral', 'meta']))
+                    <div class="field">
+                        <label>App Open Ad (Android)</label>
+                        <input type="text" name="networks[{{ $net->code }}][app_open_android]" value="{{ $net->app_open_android }}" placeholder="App Open Slot">
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        <button class="button gap-top" style="margin-top:16px;">Save Ad Networks Configuration</button>
+    </form>
+
+    <div class="panel gap-top" style="margin-top:24px;">
+        <h3>Client Live Preview (GET /api/ads/config)</h3>
+        <pre style="background:#11141c; color:#a5b4fc; padding:12px; border-radius:6px; overflow-x:auto; font-size:12px;">{{ json_encode($ad_preview, JSON_PRETTY_PRINT) }}</pre>
+    </div>
+</div>
+
 @elseif($page==='earning')
 <div class="grid cols-3">@foreach(['earn_web'=>'Website','earn_app'=>'Flutter app','earn_global'=>'Global switch'] as $k=>$label)<div class="stat"><span class="circle-icon"><x-icon :name="$k==='earn_app'?'phone':'globe'"/></span><small>{{ $label }}</small><strong>{{ $policy[$k]?'ON':'OFF' }}</strong><a href="/admin/kyc" class="text-link">Manage switches ↗</a></div>@endforeach</div><div class="panel gap-top"><h2>Task catalogue</h2><div class="table-wrap gap-top"><table><thead><tr><th>Task</th><th>Category</th><th>Reward</th><th>Budget</th><th>Evidence</th></tr></thead><tbody>@foreach($tasks as $t)<tr><td>{{ $t->title }}</td><td>{{ $t->category }}</td><td>{{ $t->reward }} RC</td><td>{{ $t->budget }} RC</td><td><span class="status">{{ $t->provider_ready?'Signed callback':'Partner pending' }}</span></td></tr>@endforeach</tbody></table></div></div>
 <div class="panel gap-top"><h2>Create an earning task</h2><form action="/admin/actions/task" method="post" class="gap-top">@csrf<div class="field-grid"><div class="field"><label>Title</label><input name="title" required></div><div class="field"><label>Category</label><select name="category">@foreach(['app_surf','web_surf','app_install','survey'] as $v)<option>{{ $v }}</option>@endforeach</select></div><div class="field"><label>Android package name</label><input name="package_name" placeholder="com.partner.application"></div><div class="field"><label>Approved HTTPS URL</label><input name="url" type="url"></div><div class="field"><label>Reward · RC</label><input name="reward" value="100" required></div><div class="field"><label>Budget · RC</label><input name="budget" value="10000" required></div></div><div class="field"><label>Country eligibility</label><div class="check-grid">@foreach(config('riko.countries') as $v=>$label)<label><input name="countries[]" type="checkbox" value="{{ $v }}">{{ $label }}</label>@endforeach</div></div><details class="gap-top"><summary class="text-link">Country reward overrides · RC</summary><p class="helper">Optional. Blank uses the default reward. Enable the country above before assigning its rate.</p><div class="field-grid gap-top">@foreach(config('riko.countries') as $code=>$label)<div class="field"><label>{{ $label }} · RC</label><input name="rates[{{ $code }}]" inputmode="decimal" placeholder="Use default reward"></div>@endforeach</div></details>@foreach(['devices'=>['android','ios','desktop'],'channels'=>['web','app']] as $key=>$values)<div class="field"><label>{{ ucfirst($key) }}</label><div class="check-grid">@foreach($values as $v)<label><input name="{{ $key }}[]" type="checkbox" value="{{ $v }}">{{ ucfirst($v) }}</label>@endforeach</div></div>@endforeach<div class="field"><label>Instructions</label><textarea name="instructions" required></textarea></div><label class="toggle-row"><span>Show in eligible catalogues<small>Automatic verification remains disabled until a trusted partner is connected.</small></span><input name="enabled" type="checkbox" value="1"></label><button class="button gap-top">Save task</button></form></div>
