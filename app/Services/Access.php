@@ -39,6 +39,12 @@ class Access
             $this->deny('This feature is restricted on your account.');
         }
         $p = $this->settings->policy();
+        if ($channel === 'partner') {
+            if (!$p['earn_global']) {
+                $this->deny('Earning is currently paused globally.');
+            }
+            return;
+        }
         if ($earning && (! $p['earn_global'] || ! ($p['earn_'.$channel] ?? false))) {
             $this->deny('Earning is currently unavailable on this platform.');
         }

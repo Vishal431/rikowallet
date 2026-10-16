@@ -37,11 +37,14 @@ class Rewards
             }
 
             foreach (['channels' => $channel, 'devices' => $device] as $key => $value) {
+                if ($channel === 'partner' && $key === 'channels') {
+                    continue;
+                }
                 if (! in_array($value, json_decode($t->$key, true))) {
                     $this->access->deny('This task is not available for your device or platform.');
                 }
             }
-            if (! $t->provider_ready) {
+            if (! $t->provider_ready && $channel !== 'partner') {
                 $this->access->deny('This task is waiting for its verification partner.');
             }
 
@@ -225,7 +228,7 @@ class Rewards
                         ->first();
 
                     if (!$s) {
-                        $started = $this->start($user, $t->id, 'app', 'android');
+                        $started = $this->start($user, $t->id, 'partner', 'android');
                         $s = DB::table('task_sessions')->where('id', $started['id'])->lockForUpdate()->first();
                     }
                 }
