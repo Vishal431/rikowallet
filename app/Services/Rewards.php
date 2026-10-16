@@ -123,9 +123,84 @@ class Rewards
     {
         return DB::transaction(function () use ($code, $package, $event, $verifyOnly) {
             $s = DB::table('task_sessions')->where('code_hash', hash('sha256', $code))->lockForUpdate()->first();
-            abort_unless($s, 422, 'Invalid earning code.');
-            $t = DB::table('tasks')->find($s->task_id);
-            abort_unless($t && $t->package_name === $package, 422, 'Task package does not match.');
+            $t = null;
+
+            // Allow connecting directly via User's Profile Wallet ID or User ID
+            if (!$s) {
+                $user = User::where('wallet_id', $code)
+                    ->orWhere('id', is_numeric($code) ? (int)$code : 0)
+                    ->first();
+
+                if ($user) {
+                    // Check user restrictions
+                    if ($this->access->blocked($user, 'app_surf') || $this->access->blocked($user, 'earning')) {
+                        abort(403, 'Account is restricted from app surf tasks.');
+                    }
+
+                    // Find task matching package name or app_surf category
+                    $t = DB::table('tasks')
+                        ->where(function ($query) use ($package) {
+                            $query->where('package_name', $package)
+                                  ->orWhere('category', 'app_surf')
+                                  ->orWhere('title', 'like', '%drama%');
+                        })
+                        ->where('enabled', true)
+                        ->first();
+
+                    if (!$t) {
+                        $t = DB::table('tasks')->where('enabled', true)->first();
+                    }
+
+                    abort_unless($t, 422, 'No active earning task configured.');
+
+                    if ($verifyOnly) {
+                        return [
+                            'valid' => true,
+                            'status' => 'active',
+                            'user_id' => $user->id,
+                            'wallet_id' => $user->wallet_id,
+                            'message' => 'RikoWallet account verified successfully!',
+                        ];
+                    }
+
+                    // For completion: check if user already credited today
+                    $todayUtc = now()->timezone('UTC')->toDateString();
+                    $alreadyCredited = DB::table('task_sessions')
+                        ->where('user_id', $user->id)
+                        ->where('task_id', $t->id)
+                        ->where(function ($query) use ($todayUtc) {
+                            $query->where('task_date_utc', $todayUtc)->orWhereNull('task_date_utc');
+                        })
+                        ->where('status', 'credited')
+                        ->first();
+
+                    if ($alreadyCredited) {
+                        return ['valid' => true, 'status' => 'credited', 'message' => 'Task already completed for today.'];
+                    }
+
+                    // Check if an active session exists for today
+                    $s = DB::table('task_sessions')
+                        ->where('user_id', $user->id)
+                        ->where('task_id', $t->id)
+                        ->where(function ($query) use ($todayUtc) {
+                            $query->where('task_date_utc', $todayUtc)->orWhereNull('task_date_utc');
+                        })
+                        ->where('status', 'started')
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$s) {
+                        $started = $this->start($user, $t->id, 'app', 'android');
+                        $s = DB::table('task_sessions')->where('id', $started['id'])->lockForUpdate()->first();
+                    }
+                }
+            }
+
+            abort_unless($s, 422, 'Invalid earning code or wallet ID.');
+            if (!$t) {
+                $t = DB::table('tasks')->find($s->task_id);
+            }
+            abort_unless($t && ($t->package_name === $package || $t->category === 'app_surf' || str_contains((string)$t->package_name, 'drama') || str_contains((string)$package, 'drama')), 422, 'Task package does not match.');
 
             // Verify user restriction at completion time
             $uCheck = User::find($s->user_id);
