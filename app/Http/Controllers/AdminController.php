@@ -139,7 +139,7 @@ class AdminController extends Controller
                         $rates[$country] = $this->ledger->amount($rate, 'RC');
                         abort_if(bccomp($rates[$country], '100000', 8) > 0, 422, 'Country rate exceeds the task reward limit.');
                     }
-                    $d = $r->validate(['title' => 'required|string|max:100', 'category' => 'required|in:app_surf,web_surf,app_install,survey', 'instructions' => 'required|string|max:2000', 'package_name' => 'nullable|regex:/^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)+$/', 'url' => 'nullable|url:https|max:500', 'reward' => 'required|numeric|min:0.01|max:100000', 'budget' => 'required|numeric|min:0|max:10000000', 'countries' => 'required|array|min:1', 'countries.*' => 'in:'.implode(',', array_keys(config('riko.countries'))), 'devices' => 'required|array|min:1', 'devices.*' => 'in:android,ios,desktop', 'channels' => 'required|array|min:1', 'channels.*' => 'in:web,app']);
+                    $d = $r->validate(['title' => 'required|string|max:100', 'category' => 'required|in:app_surf,web_surf,app_install,survey', 'instructions' => 'required|string|max:2000', 'package_name' => 'nullable|regex:/^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)+$/', 'url' => 'nullable|url:https|max:500', 'reward' => 'required|numeric|min:0|max:100000', 'budget' => 'required|numeric|min:0|max:10000000', 'countries' => 'required|array|min:1', 'countries.*' => 'in:'.implode(',', array_keys(config('riko.countries'))), 'devices' => 'required|array|min:1', 'devices.*' => 'in:android,ios,desktop', 'channels' => 'required|array|min:1', 'channels.*' => 'in:web,app']);
                     foreach (['countries', 'devices', 'channels'] as $k) {
                         $d[$k] = json_encode($d[$k]);
                     }$d['enabled'] = $r->boolean('enabled');
@@ -161,7 +161,7 @@ class AdminController extends Controller
                     $target = $u->wallet_id;
                     break;
                 case 'restriction':
-                    $d = $r->validate(['user_id' => 'required|integer', 'scope' => 'required|in:account,login,earning,support,financial', 'duration' => 'required|in:clear,day,week,permanent', 'reason' => 'required|string|max:500']);
+                    $d = $r->validate(['user_id' => 'required|integer', 'scope' => 'required|in:account,login,earning,support,financial,app_surf,web_surf,app_install,survey', 'duration' => 'required|in:clear,day,week,permanent', 'reason' => 'required|string|max:500']);
                     $u = User::whereKey($d['user_id'])->lockForUpdate()->firstOrFail();
                     abort_if($u->id === $r->user()->id, 403);
                     $v = $u->restrictions ?? [];

@@ -18,19 +18,75 @@ class Rewards
         return DB::transaction(function () use ($u, $taskId, $channel, $device) {
             $t = DB::table('tasks')->where('id', $taskId)->lockForUpdate()->first();
             abort_unless($t && $t->enabled, 404);
-            foreach (['countries' => $u->country, 'channels' => $channel, 'devices' => $device] as $key => $value) {
+
+            // 1. User task category restrictions (e.g. banned from app_surf)
+            if ($this->access->blocked($u, 'app_surf') && ($t->category === 'app_surf' || str_contains($t->title, 'Surf') || str_contains((string) $t->package_name, 'drama'))) {
+                $this->access->deny('Your account is restricted from app surf tasks.');
+            }
+            if ($this->access->blocked($u, $t->category) || $this->access->blocked($u, 'task_' . $t->id)) {
+                $this->access->deny('Your account is restricted from this task category.');
+            }
+
+            // 2. Country & Worldwide eligibility
+            $allowedCountries = json_decode($t->countries ?? '[]', true) ?: [];
+            $isWorldwide = in_array('*', $allowedCountries) || in_array('WW', $allowedCountries) || in_array('ALL', $allowedCountries) || empty($allowedCountries);
+            $userCountry = strtoupper(trim($u->country ?? ''));
+
+            if (! $isWorldwide && ! in_array($userCountry, $allowedCountries)) {
+                $this->access->deny('This task is not available for your country.');
+            }
+
+            foreach (['channels' => $channel, 'devices' => $device] as $key => $value) {
                 if (! in_array($value, json_decode($t->$key, true))) {
-                    $this->access->deny('This task is not available for your country or device.');
+                    $this->access->deny('This task is not available for your device or platform.');
                 }
             }
             if (! $t->provider_ready) {
                 $this->access->deny('This task is waiting for its verification partner.');
             }
-            if (DB::table('task_sessions')->where(['user_id' => $u->id, 'task_id' => $t->id])->exists()) {
-                $this->access->deny('You already started this task. See your activity for its status.');
+
+            // 3. 1 task completion per UTC day (Resets at 00:00 UTC)
+            $todayUtc = now()->timezone('UTC')->toDateString();
+            $existingSession = DB::table('task_sessions')
+                ->where('user_id', $u->id)
+                ->where('task_id', $t->id)
+                ->where(function ($query) use ($todayUtc) {
+                    $query->where('task_date_utc', $todayUtc)
+                          ->orWhereNull('task_date_utc');
+                })
+                ->first();
+
+            if ($existingSession) {
+                $sessionDate = $existingSession->task_date_utc ?: substr($existingSession->created_at, 0, 10);
+                if ($sessionDate === $todayUtc) {
+                    if ($existingSession->status === 'credited') {
+                        $this->access->deny('You have already completed this task today. Daily limit resets at 00:00 UTC.');
+                    } else {
+                        $this->access->deny('You already have an active session for this task today. See your activity for pairing code.');
+                    }
+                }
             }
+
+            // 4. Country rate calculation with Worldwide fallback (0 if not eligible)
             $p = $u->referral_policy ?? $this->settings->policy();
-            $reward = (json_decode($t->rates ?? '{}', true)[$u->country] ?? $t->reward);
+            $rates = json_decode($t->rates ?? '{}', true) ?: [];
+
+            if (isset($rates[$userCountry]) && $rates[$userCountry] !== '') {
+                $reward = (string) $rates[$userCountry];
+            } elseif (isset($rates['*']) && $rates['*'] !== '') {
+                $reward = (string) $rates['*'];
+            } elseif (isset($rates['WW']) && $rates['WW'] !== '') {
+                $reward = (string) $rates['WW'];
+            } elseif (isset($rates['ALL']) && $rates['ALL'] !== '') {
+                $reward = (string) $rates['ALL'];
+            } else {
+                $reward = (string) ($t->reward ?? '0');
+            }
+
+            if (bccomp($reward, '0', 8) <= 0) {
+                $this->access->deny('This task currently has no reward allocated for your region (Reward: 0).');
+            }
+
             $commission = $u->referrer_id && $p['referral_mode'] === 'C' ? bcdiv(bcmul($reward, $p['referral_percent'], 8), '100', 2) : '0';
             $total = bcadd($reward, $commission, 8);
             if (bccomp($t->budget, $total, 8) < 0) {
@@ -43,7 +99,21 @@ class Rewards
                 $this->ledger->account('task:'.$id, 'RC') => $total,
             ]);
             DB::table('tasks')->where('id', $t->id)->update(['budget' => bcsub($t->budget, $total, 8)]);
-            DB::table('task_sessions')->insert(['id' => $id, 'user_id' => $u->id, 'task_id' => $t->id, 'code_hash' => hash('sha256', $code), 'channel' => $channel, 'device' => $device, 'reward' => $reward, 'policy' => json_encode($p + ['commission' => $commission]), 'status' => 'started', 'expires_at' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('task_sessions')->insert([
+                'id' => $id,
+                'user_id' => $u->id,
+                'task_id' => $t->id,
+                'code_hash' => hash('sha256', $code),
+                'channel' => $channel,
+                'device' => $device,
+                'reward' => $reward,
+                'policy' => json_encode($p + ['commission' => $commission]),
+                'status' => 'started',
+                'task_date_utc' => $todayUtc,
+                'expires_at' => now()->addDay(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
             return ['id' => $id, 'pairing_code' => $code, 'reward' => $reward, 'status' => 'started'];
         }, 5);
@@ -56,6 +126,17 @@ class Rewards
             abort_unless($s, 422, 'Invalid earning code.');
             $t = DB::table('tasks')->find($s->task_id);
             abort_unless($t && $t->package_name === $package, 422, 'Task package does not match.');
+
+            // Verify user restriction at completion time
+            $uCheck = User::find($s->user_id);
+            if ($uCheck) {
+                if ($this->access->blocked($uCheck, 'app_surf') && ($t->category === 'app_surf' || str_contains($t->title, 'Surf') || str_contains((string) $t->package_name, 'drama'))) {
+                    abort(403, 'Account is restricted from app surf tasks.');
+                }
+                if ($this->access->blocked($uCheck, $t->category) || $this->access->blocked($uCheck, 'task_' . $t->id)) {
+                    abort(403, 'Account is restricted from this task category.');
+                }
+            }
             abort_if($s->status === 'expired', 422, 'Earning session expired.');
             if ($s->status === 'credited') {
                 abort_unless($verifyOnly || $s->event_id === $event, 409, 'Completion already recorded.');
