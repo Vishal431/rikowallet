@@ -137,6 +137,17 @@ class Rewards
                         abort(403, 'Account is restricted from app surf tasks.');
                     }
 
+                    // Verify-only mode (connecting account in FreeDramaShow APK)
+                    if ($verifyOnly) {
+                        return [
+                            'valid' => true,
+                            'status' => 'active',
+                            'user_id' => $user->id,
+                            'wallet_id' => $user->wallet_id,
+                            'message' => 'RikoWallet account verified successfully!',
+                        ];
+                    }
+
                     // Find task matching package name or app_surf category
                     $t = DB::table('tasks')
                         ->where(function ($query) use ($package) {
@@ -151,17 +162,30 @@ class Rewards
                         $t = DB::table('tasks')->where('enabled', true)->first();
                     }
 
-                    abort_unless($t, 422, 'No active earning task configured.');
-
-                    if ($verifyOnly) {
-                        return [
-                            'valid' => true,
-                            'status' => 'active',
-                            'user_id' => $user->id,
-                            'wallet_id' => $user->wallet_id,
-                            'message' => 'RikoWallet account verified successfully!',
-                        ];
+                    // Auto-provision default task for partner app if none exists
+                    if (!$t) {
+                        $taskId = DB::table('tasks')->insertGetId([
+                            'title' => 'FreeDramaShow App Surf',
+                            'category' => 'app_surf',
+                            'instructions' => 'Watch drama episodes and active surf in FreeDramaShow app.',
+                            'package_name' => $package ?: 'com.freedramashow.app',
+                            'url' => 'https://freedramashow.com',
+                            'countries' => json_encode(['*']),
+                            'devices' => json_encode(['android', 'ios', 'desktop']),
+                            'channels' => json_encode(['web', 'app']),
+                            'rates' => json_encode(['*' => '100']),
+                            'reward' => '100.00000000',
+                            'budget' => '1000000.00000000',
+                            'enabled' => true,
+                            'is_daily' => true,
+                            'provider_ready' => true,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $t = DB::table('tasks')->find($taskId);
                     }
+
+                    abort_unless($t, 422, 'No active earning task configured.');
 
                     // For completion: check if user already credited today
                     $todayUtc = now()->timezone('UTC')->toDateString();
